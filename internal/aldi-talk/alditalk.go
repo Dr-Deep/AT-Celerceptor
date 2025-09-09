@@ -32,6 +32,19 @@ var (
 	//? Errors
 )
 
+type AldiTalk_Auth_Challenge struct {
+	AuthID    string                              `json:"authId"`
+	Callbacks []AldiTalk_Auth_Challenge_Callbacks `json:"callbacks"`
+	Stage     string                              `json:"stage"`
+	Header    string                              `json:"header"`
+}
+
+type AldiTalk_Auth_Success struct {
+	TokenID    string `json:"tokenId"`
+	SuccessURL string `json:"successUrl"`
+	RealmURI   string `json:"realm"`
+}
+
 type AldiTalk_Auth_Challenge_Callbacks struct {
 	Type   string                             `json:"type"`
 	Input  []AldiTalk_Auth_Challenge_Callback `json:"input"`
@@ -64,8 +77,7 @@ func (c *AldiTalk_Auth_Challenge_Callback) SetValueAsString(value string) error 
 		return err
 	}
 
-	raw := json.RawMessage(data)
-	c.Value = &raw
+	c.Value = (*json.RawMessage)(&data)
 
 	return nil
 }
@@ -89,17 +101,9 @@ func (c *AldiTalk_Auth_Challenge_Callback) SetValueAsArray(value []string) error
 		return err
 	}
 
-	raw := json.RawMessage(data)
-	c.Value = &raw
+	c.Value = (*json.RawMessage)(&data)
 
 	return nil
-}
-
-type AldiTalk_Auth_Challenge struct {
-	AuthID    string                              `json:"authId"`
-	Callbacks []AldiTalk_Auth_Challenge_Callbacks `json:"callbacks"`
-	Stage     string                              `json:"stage"`
-	Header    string                              `json:"header"`
 }
 
 /*
@@ -121,7 +125,7 @@ func setDefaultHeadersForReq(req *http.Request) {
 	}
 }
 
-func readRespToBuf(r io.ReadCloser) (*bytes.Buffer, error) {
+func readToBuf(r io.ReadCloser) (*bytes.Buffer, error) {
 	out, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -130,4 +134,51 @@ func readRespToBuf(r io.ReadCloser) (*bytes.Buffer, error) {
 	//? io.LimitReader()
 
 	return bytes.NewBuffer(out), r.Close()
+}
+
+// Output wird nur überprüft und input ausgefüllt
+func fillCallback(callback *AldiTalk_Auth_Challenge_Callbacks, input, output map[string]string) error {
+	// Check Lenghts
+	if len(callback.Input) != len(input) {
+		return fmt.Errorf("input length mismatch: expected %d, got %d", len(callback.Input), len(input))
+	}
+	if len(callback.Output) != len(output) {
+		return fmt.Errorf("output length mismatch: expected %d, got %d", len(callback.Output), len(output))
+	}
+
+	// Fill Input
+	for i := range callback.Input {
+		name := callback.Input[i].Name
+		val, ok := input[name]
+		if !ok {
+			return fmt.Errorf("missing input value for key %q", name)
+		}
+
+		if err := callback.Input[i].SetValueAsString(val); err != nil {
+			return err
+		}
+	}
+
+	// Check Output Values
+	for i := range callback.Output {
+		name := callback.Output[i].Name
+		expected, ok := output[name]
+		if !ok {
+			return fmt.Errorf("missing output key %q", name)
+		}
+		if callback.Output[i].Value == nil {
+			return fmt.Errorf("output value for %q is nil", name)
+		}
+
+		actual, err := callback.Output[i].GetValueAsString()
+		if err != nil {
+			return err
+		}
+
+		if actual != expected {
+			return fmt.Errorf("output mismatch for %q: expected %q, got %q", name, expected, actual)
+		}
+	}
+
+	return nil
 }

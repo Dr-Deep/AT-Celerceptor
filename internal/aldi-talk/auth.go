@@ -32,40 +32,6 @@ const (
 */
 
 /* Login Flow via ForgeRock
-// 2. Credentials zurücksenden
-payload := map[string]any{
-	"authId": authId,
-	"callbacks": []any{
-		map[string]any{
-			"type": "NameCallback",
-			"input": []map[string]string{
-				{"name": "IDToken1", "value": s.User},
-			},
-		},
-		map[string]any{
-			"type": "PasswordCallback",
-			"input": []map[string]string{
-				{"name": "IDToken2", "value": s.Pass},
-			},
-		},
-	},
-}
-
-data, _ := json.Marshal(payload)
-
-req2, _ := http.NewRequest("POST",
-	"https://login.alditalk-kundenbetreuung.de/signin/json/authenticate",
-	bytes.NewBuffer(data))
-req2.Header.Set("Content-Type", "application/json")
-
-resp2, err := s.client.Do(req2)
-if err != nil {
-	return err
-}
-defer resp2.Body.Close()
-
-out, _ := io.ReadAll(resp2.Body)
-
 // Prüfen ob Login erfolgreich
 var result map[string]any
 if err := json.Unmarshal(out, &result); err != nil {
@@ -80,13 +46,64 @@ if _, ok := result["tokenId"]; !ok {
 return s.fetchCID()
 */
 
-// Get ForgeRock Login Challenge
-func (s *AldiTalkSession) authGetChallenge() (*AldiTalk_Auth_Challenge, error) {
+/*
+- Solve ForgeRock Challenges -> bis wir:
+
+	{
+	"tokenId":"1FaaBylL0qRbIFvBsfI3bnAGrjw.*AAJTSQACMDMAAlNLABw5Zk9FS2hmaFVmcGFaUENtcG15a1o2dCtMSWs9AAR0eXBlAANDVFMAAlMxAAIwNA..*",
+	"successUrl":"https://www.alditalk-kundenbetreuung.de/",
+	"realm":"/alditalk",
+	}
+*/
+func (s *AldiTalkSession) authenticate() (any, error) {
+	// get challenges
+	// solve challenges
+	// send challenges (?token oder nochmal solven)
+
+	var (
+		currentChallenges *AldiTalk_Auth_Challenge
+		err               error
+	)
+	for {
+		// Request/Respond
+		currentChallenges, err = s.authGetChallenges(currentChallenges)
+		if err != nil {
+			return nil, err
+		}
+
+		s.Logger.Debug("Auth Stage", currentChallenges.Stage)
+
+		//? if success bzw token ist da
+		if true == false {
+			break
+		}
+
+		// Solve
+		if err := s.authSolveChallenges(currentChallenges); err != nil {
+			return nil, err
+		}
+	}
+}
+
+// Get ForgeRock Login Challenges
+func (s *AldiTalkSession) authGetChallenges(challenges *AldiTalk_Auth_Challenge) (*AldiTalk_Auth_Challenge, error) {
+	var jsonBody []byte
+	if challenges == nil {
+		jsonBody = []byte(`{}`)
+	} else {
+		// marshal
+		_jsonBody, err := json.MarshalIndent(challenges, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		jsonBody = _jsonBody
+	}
+
 	// HTTP POST
 	req, err := http.NewRequest(
 		"POST",
 		ALDITALK_BASE_URL+ALDITALK_ENDPOINT_AUTH_URI,
-		bytes.NewBuffer([]byte(`{}`)),
+		bytes.NewBuffer(jsonBody),
 	)
 	if err != nil {
 		return nil, err
@@ -106,14 +123,15 @@ func (s *AldiTalkSession) authGetChallenge() (*AldiTalk_Auth_Challenge, error) {
 		return nil, fmt.Errorf("response status-code is not 200")
 	}
 
-	respBuf, err := readRespToBuf(resp.Body)
+	respBuf, err := readToBuf(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
 	var authResp AldiTalk_Auth_Challenge
 	if err := json.NewDecoder(respBuf).Decode(&authResp); err != nil {
-		s.Logger.Debug("received", respBuf.String())
+		s.Logger.Debug("Request", string(jsonBody))
+		s.Logger.Debug("Response", respBuf.String())
 		return nil, err
 	}
 
@@ -124,36 +142,40 @@ func (s *AldiTalkSession) authGetChallenge() (*AldiTalk_Auth_Challenge, error) {
 	return &authResp, nil
 }
 
-// Solve ForgeRock Challenges -> bis wir:
-/*
-{
-	"tokenId":"1FaaBylL0qRbIFvBsfI3bnAGrjw.*AAJTSQACMDMAAlNLABw5Zk9FS2hmaFVmcGFaUENtcG15a1o2dCtMSWs9AAR0eXBlAANDVFMAAlMxAAIwNA..*",
-	"successUrl":"https://www.alditalk-kundenbetreuung.de/",
-	"realm":"/alditalk",
-}
-*/
+// Solve ForgeRock Login Challenges
 func (s *AldiTalkSession) authSolveChallenges(challenges *AldiTalk_Auth_Challenge) error {
 
 	for i, challenge := range challenges.Callbacks {
 		var idx = fmt.Sprintf("(%v/%v): %v", i+1, len(challenges.Callbacks), challenge.Id)
 
-		//
 		switch challenge.Type {
 		case ALDITALK_CALLBACK_Name:
 			s.Logger.Debug(idx, "Got", "NameCallback", fmt.Sprintf("%#v", challenge))
-			return s.authSolveChallengeName(&challenge)
+			if err := s.authSolveChallengeName(&challenge); err != nil {
+				s.Logger.Error("ALDITALK_CALLBACK_Name", err.Error())
+				return err
+			}
 
 		case ALDITALK_CALLBACK_Password:
 			s.Logger.Debug(idx, "Got", "PasswordCallback", fmt.Sprintf("%v", challenge))
-			s.authSolveChallengePassword(&challenge)
+			if err := s.authSolveChallengePassword(&challenge); err != nil {
+				s.Logger.Error("ALDITALK_CALLBACK_Password", err.Error())
+				return err
+			}
 
 		case ALDITALK_CALLBACK_TextOutput:
 			s.Logger.Debug(idx, "Got", "TextOutputCallback", fmt.Sprintf("%v", challenge))
-			s.authSolveChallengeTextOutput(&challenge)
+			if err := s.authSolveChallengeTextOutput(&challenge); err != nil {
+				s.Logger.Error("ALDITALK_CALLBACK_TextOutput", err.Error())
+				return err
+			}
 
 		case ALDITALK_CALLBACK_HiddenValue:
 			s.Logger.Debug(idx, "Got", "HiddenValueCallback", fmt.Sprintf("%v", challenge))
-			s.authSolveChallengeHiddenValue(&challenge)
+			if err := s.authSolveChallengeHiddenValue(&challenge); err != nil {
+				s.Logger.Error("ALDITALK_CALLBACK_HiddenValue", err.Error())
+				return err
+			}
 
 		case ALDITALK_CALLBACK_Confirmation:
 			//! bei ConfirmationCallback kann auch value:[]string
@@ -165,72 +187,75 @@ func (s *AldiTalkSession) authSolveChallenges(challenges *AldiTalk_Auth_Challeng
 		}
 	}
 
-	// send solved challenges?
-
 	return nil
 }
 
 /*
-		"type": "NameCallback",
-	            "output": [
-	                {
-	                    "name": "prompt",
-	                    "value": "custom.alditalk.loginuserbasic.login|custom.alditalk.loginuserbasic.loginplaceholder"
-	                }
-	            ],
-	            "input": [
-	                {
-	                    "name": "IDToken3",
-	                    "value": "TELNUM/Username"
-	                }
-	            ],
-	            "_id": 2
+"type": "NameCallback",
+"output": [
+
+	{
+	    "name": "prompt",
+	    "value": "custom.alditalk.loginuserbasic.login|custom.alditalk.loginuserbasic.loginplaceholder"
+	}
+
+],
+"input": [
+
+	{
+	    "name": "IDToken3",
+	    "value": "TELNUM/Username"
+	}
+
+],
+"_id": 2
 */
 func (s *AldiTalkSession) authSolveChallengeName(challenge *AldiTalk_Auth_Challenge_Callbacks) error {
-	// Muster abstimmen?
-	if len(challenge.Input) != 1 && len(challenge.Output) != 1 {
-		//! err: falsches muster
-	}
-
-	// Output Muster
-	ov, err := challenge.Output[0].GetValueAsString()
-	if err != nil {
-		//!err
-	}
-
-	if challenge.Output[0].Name != "prompt" || ov != "custom.alditalk.loginuserbasic.login|custom.alditalk.loginuserbasic.loginplaceholder" {
-		//! err
-	}
-
-	// Input Muster
-	if challenge.Input[0].Name != "IDToken3" {
-		//! err
-	}
-
-	// Solve Challenge
-	challenge.Input[0].SetValueAsString(s.username)
-
-	return nil
+	return fillCallback(
+		challenge,
+		// Input
+		map[string]string{
+			"IDToken3": s.username,
+		},
+		// Output
+		map[string]string{
+			"prompt": "custom.alditalk.loginuserbasic.login|custom.alditalk.loginuserbasic.loginplaceholder",
+		},
+	)
 }
 
+/*
+"type": "PasswordCallback",
+"output": [
+
+	{
+	    "name": "prompt",
+	    "value": "custom.alditalk.loginuserbasic.password|custom.alditalk.loginuserbasic.passwordplaceholder"
+	}
+
+],
+"input": [
+
+	{
+	    "name": "IDToken4",
+	    "value": "PASSWORD"
+	}
+
+],
+"_id": 3
+*/
 func (s *AldiTalkSession) authSolveChallengePassword(challenge *AldiTalk_Auth_Challenge_Callbacks) error {
-	/*
-			 "type": "PasswordCallback",
-		            "output": [
-		                {
-		                    "name": "prompt",
-		                    "value": "custom.alditalk.loginuserbasic.password|custom.alditalk.loginuserbasic.passwordplaceholder"
-		                }
-		            ],
-		            "input": [
-		                {
-		                    "name": "IDToken4",
-		                    "value": ""
-		                }
-		            ],
-		            "_id": 3
-	*/
-	return nil
+	return fillCallback(
+		challenge,
+		// Input
+		map[string]string{
+			"IDToken4": s.password,
+		},
+		// Output
+		map[string]string{
+			"prompt": "custom.alditalk.loginuserbasic.password|custom.alditalk.loginuserbasic.passwordplaceholder",
+		},
+	)
 }
 
 func (s *AldiTalkSession) authSolveChallengeTextOutput(challenge *AldiTalk_Auth_Challenge_Callbacks) error {
@@ -315,49 +340,3 @@ func (s *AldiTalkSession) authSolveChallengeConfirmation(challenge *AldiTalk_Aut
 	*/
 	return nil
 }
-
-/*
-	func fillCallbacks(fr frResponse, user, pass string) ([]map[string]any, error) {
-		filled := make([]map[string]any, 0, len(cbArr))
-		for _, cb := range cbArr {
-			m := map[string]any{
-				"type": cb.Type,
-			}
-			// Kopiere Output (falls Server es erwartet)
-			if len(cb.Output) > 0 {
-				m["output"] = cb.Output
-			}
-
-			// Fülle bekannte Callback-Typen
-			switch strings.ToLower(cb.Type) {
-			case "namecallback":
-				m["input"] = []frInput{{Name: "IDToken1", Value: user}}
-			case "passwordcallback":
-				m["input"] = []frInput{{Name: "IDToken2", Value: pass}}
-			default:
-				// Unbekannt → leere Inputs übernehmen, falls vorhanden
-				if len(cb.Input) > 0 {
-					m["input"] = cb.Input
-				}
-			}
-			filled = append(filled, m)
-		}
-		return filled, nil
-}
-*/
-
-/*
-	// Schritt 2: Challenge beantworten (Name/Password)
-	filledChallenge, err := fillCallbacks(fr1, username, password)
-	if err != nil {
-		log.Fatalf("Callbacks nicht füllbar: %v", err)
-	}
-	payload2 := map[string]any{
-		"authId":    fr1.AuthID,
-		"callbacks": filledChallenge,
-	}
-	authResp2, err := postJSON(c, authenticateEP, payload2)
-	if err != nil {
-		log.Fatalf("Authenticate (Step 2) fehlgeschlagen: %v", err)
-	}
-*/

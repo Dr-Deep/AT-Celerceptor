@@ -62,11 +62,7 @@ func (s *AldiTalkSession) login() error {
 		return err
 	}
 
-	/*
-		// Zurück in JSON
-		newJSON, _ := json.MarshalIndent(callbacks, "", "  ")
-		fmt.Println(string(newJSON))
-	*/
+	s.authSendSolvedChallenges(challenge)
 
 	os.Exit(0)
 
