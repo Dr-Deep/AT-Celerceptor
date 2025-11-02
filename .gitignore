@@ -33,6 +33,6 @@ go.work.sum
 
 config.yml
 Todo.md
-old*
+old
 alditalk-utils
 *.json
