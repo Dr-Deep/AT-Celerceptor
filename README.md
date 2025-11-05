@@ -1,6 +1,6 @@
-# Alid-Talk-Celerceptor
+# AT-Celerceptor
 dieses programm bedient die Aldi-Talk API direkt statt einen ganzen verdammten Browser zu starten wie die ganzen anderen Amateur Projekte (at-panther war Schmutz; at-extender war eine super Inspiration)
-in Termux (App auf deinem Smartphone) kannst du es auch laufen lassen statt auf deinem Server oder PC
+in Termux (App in FDroid oder im Playstatore) kannst du es auch laufen lassen statt auf deinem Server oder PC
 
 # Installation
 entweder du lädst dir Rechts ein fertiges Release runter oder baust es selber

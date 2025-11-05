@@ -1,5 +1,7 @@
 package atfram
 
+import "fmt"
+
 // Server Version wahrscheinlich:
 // ForgeRock OpenAM (XUI) + OAuth2 (AM 13–14 era, evtl. AM 5.x rebrand).
 // und da ist auch eine fette proxy irwo, die blockt ab und zu pfade
@@ -7,7 +9,7 @@ package atfram
 const (
 	ALDITALK_URL      = "https://login.alditalk-kundenbetreuung.de"
 	ALDITALK_BASE     = "/signin/json/realms/root/realms"
-	ALDITALK_REALM    = "alditalk"
+	ALDITALK_REALM    = "/alditalk"
 	ALDITALK_BASE_URI = ALDITALK_URL + ALDITALK_BASE + ALDITALK_REALM
 
 	// AM Resource / Endpoints
@@ -74,33 +76,55 @@ func (c *Client) Login() error {
 
 		// parsen
 		requirements, err := c.getRequirements(resp.Callbacks)
+		if err != nil {
+			return err
+		}
+
+		c.test(requirements)
 
 		// ausfüllen
-		err := c.submitRequirements(requirements)
+		err = c.submitRequirements(requirements)
 
 		// senden
 	}
 
-	c.submitRequirements()
+	//c.submitRequirements()
 
+	return nil
+}
+
+func (c *Client) test(requirements []Callback) {
+	for _, v := range requirements {
+		c.logger.Info(fmt.Sprintf("%#v", v))
+	}
+
+	c.logger.Fatal("test() !")
 }
 
 func (c *Client) getRequirements(callbacks []CallbackRaw) ([]Callback, error) {
-	// parse last
+	var requirements []Callback
+	for _, cbraw := range callbacks {
+		cb, err := matchCallback(cbraw)
+		if err != nil {
+			return nil, err
+		}
 
-	for idx, cb := range callbacks {
-
+		requirements = append(requirements, cb)
 	}
+
+	return requirements, nil
 }
 
 func (c *Client) submitRequirements(callbacks []Callback) error {
 	// geparste resp solven && senden
 	// wenn kein tokenID: c.submitRequirements(newest_resp_callbacks)
 
+	return nil
 }
 
 func (c *Client) hasMoreRequirements() bool {
 	// stateful status?
+	return false
 }
 
 // https://openam.example.com:8443/openam/json/sessions/?_action=logout&tokenId=IRWAS

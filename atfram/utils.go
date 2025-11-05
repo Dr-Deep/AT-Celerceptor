@@ -1,6 +1,8 @@
 package atfram
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 )
 
@@ -12,15 +14,13 @@ func (c *Client) setHeadersForRequest(req *http.Request) {
 	}
 }
 
-/*
-func readToBuf(r io.ReadCloser) (*bytes.Buffer, error) {
+func readToBuf(r io.ReadCloser) *bytes.Buffer {
 	out, err := io.ReadAll(r)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	//? io.LimitReader()
 
-	return bytes.NewBuffer(out), r.Close()
+	return bytes.NewBuffer(out)
 }
-*/

@@ -10,4 +10,5 @@ var (
 
 	// AldiTalkClient
 	ErrAldiTalkClientInvalidStatusCode = errors.New("unexpected response status-code")
+	ErrAldiTalkClientUnknownCallback   = errors.New("please use github issues, I do not know that callback yet or havent implemented it")
 )

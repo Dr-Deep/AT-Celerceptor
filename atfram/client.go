@@ -49,7 +49,7 @@ type Client struct {
 "header": ""
 */
 func (c *Client) authenticate() (*Response, error) {
-	var jsonBody []byte
+	var jsonBody = []byte{'{', '}'}
 
 	// HTTP POST
 	req, err := http.NewRequest(
@@ -69,6 +69,9 @@ func (c *Client) authenticate() (*Response, error) {
 		return nil, err
 	}
 
+	//c.logger.Debug("SEND: ", req.URL.String(), fmt.Sprintf("%#v\n\n", req))
+	//c.logger.Debug("RECEIVED:", fmt.Sprintf("%#v\n", rawresp), "BODY:", readToBuf(rawresp.Body).String(), "\n\n")
+
 	// valid Resp?
 	if rawresp.StatusCode != http.StatusOK {
 		return nil, ErrAldiTalkClientInvalidStatusCode
@@ -85,7 +88,6 @@ func (c *Client) authenticate() (*Response, error) {
 /*
 * /sessions
  */
-func (c *Client) sus()
 
 /*
 	c.doc = resp

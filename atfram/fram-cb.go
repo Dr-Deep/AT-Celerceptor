@@ -1,5 +1,7 @@
 package atfram
 
+import "fmt"
+
 var (
 	callbackRegistry = map[string]CallbackType{
 		"ChoiceCallback":           CHOICE_CALLBACK,
@@ -37,70 +39,33 @@ var (
  * type matcher
  */
 
-// !
-func match_ChoiceCallback(c CallbackRaw) (Callback, error) {}
+func match_ChoiceCallback(c CallbackRaw) (Callback, error) {
+	return &ChoiceCallback{CallbackRaw: c}, nil
+}
 
-// !
-func match_ConfirmationCallback(c CallbackRaw) (Callback, error) {}
+func match_ConfirmationCallback(c CallbackRaw) (Callback, error) {
+	return &ConfirmationCallback{CallbackRaw: c}, nil
+}
 
-/*
-{
-            "type": "HiddenValueCallback",
-            "output": [
-                {
-                    "name": "value",
-                    "value": ""
-                },
-                {
-                    "name": "id",
-                    "value": "proofOfWorkNonce"
-                }
-            ],
-            "input": [
-                {
-                    "name": "IDToken1",
-                    "value": "proofOfWorkNonce"
-                }
-            ],
-            "_id": 0
-},
-{
-            "type": "HiddenValueCallback",
-            "output": [
-                {
-                    "name": "value",
-                    "value": ""
-                },
-                {
-                    "name": "id",
-                    "value": "proofOfWorkNonce"
-                }
-            ],
-            "input": [
-                {
-                    "name": "IDToken1",
-                    "value": "892"
-                }
-            ],
-            "_id": 0
-        },
-*/
-// !
-func match_HiddenValueCallback(c CallbackRaw) (Callback, error) {}
+func match_HiddenValueCallback(c CallbackRaw) (Callback, error) {
+	return &HiddenValueCallback{CallbackRaw: c}, nil
+}
 
-// !
 func match_NameCallback(c CallbackRaw) (Callback, error) {
 	return &NameCallback{CallbackRaw: c}, nil
 }
 
-// !
-func match_PasswordCallback(c CallbackRaw) (Callback, error) {}
+func match_PasswordCallback(c CallbackRaw) (Callback, error) {
+	return &PasswordCallback{CallbackRaw: c}, nil
+}
 
-// !
-func match_TextInputCallback(c CallbackRaw) (Callback, error) {}
+func match_TextInputCallback(c CallbackRaw) (Callback, error) {
+	return &TextInputCallback{CallbackRaw: c}, nil
+}
 
-// !
-func match_TextOutputCallback(c CallbackRaw) (Callback, error) {}
+func match_TextOutputCallback(c CallbackRaw) (Callback, error) {
+	return &TextOutputCallback{CallbackRaw: c}, nil
+}
 
 func match_RedirectCallback(c CallbackRaw) (Callback, error)         { return matchUnknownCallback(c) }
 func match_ScriptTextOutputCallback(c CallbackRaw) (Callback, error) { return matchUnknownCallback(c) }
@@ -108,8 +73,9 @@ func match_HttpCallback(c CallbackRaw) (Callback, error)             { return ma
 func match_LanguageCallback(c CallbackRaw) (Callback, error)         { return matchUnknownCallback(c) }
 func match_X509CertCallback(c CallbackRaw) (Callback, error)         { return matchUnknownCallback(c) }
 
-// ! log?; err
-func matchUnknownCallback(c CallbackRaw) (Callback, error) {}
+func matchUnknownCallback(c CallbackRaw) (Callback, error) {
+	return nil, fmt.Errorf("%w : %#v", ErrAldiTalkClientUnknownCallback, c)
+}
 
 func matchCallback(cb CallbackRaw) (Callback, error) {
 	var cbType, ok = callbackRegistry[cb.CallbackType]
@@ -133,7 +99,7 @@ func (cb *ChoiceCallback) Type() CallbackType {
 }
 
 func (cb *ChoiceCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
 }
 
 /*
@@ -189,7 +155,7 @@ func (cb *ConfirmationCallback) Type() CallbackType {
 }
 
 func (cb *ConfirmationCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
 }
 
 /*
@@ -251,7 +217,7 @@ func (cb *HiddenValueCallback) Type() CallbackType {
 }
 
 func (cb *HiddenValueCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
 }
 
 //func (cb *HiddenValueCallback) SetHiddenValue(s string)
@@ -269,7 +235,7 @@ func (cb *HttpCallback) Type() CallbackType {
 }
 
 func (cb *HttpCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
 }
 
 /*
@@ -285,7 +251,7 @@ func (cb *LanguageCallback) Type() CallbackType {
 }
 
 func (cb *LanguageCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
 }
 
 /*
@@ -301,7 +267,7 @@ func (cb *NameCallback) Type() CallbackType {
 }
 
 func (cb *NameCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
 }
 
 func (cb *NameCallback) GetName() string {
@@ -324,7 +290,7 @@ func (cb *PasswordCallback) Type() CallbackType {
 }
 
 func (cb *PasswordCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
 }
 
 func (cb *PasswordCallback) GetName() string {
@@ -333,6 +299,10 @@ func (cb *PasswordCallback) GetName() string {
 
 func (cb *PasswordCallback) SetPassword(s string) {
 	cb.Inputs[0].Value = s
+}
+
+func (cb *PasswordCallback) GetPassword() string {
+	return cb.Inputs[0].Value.(string)
 }
 
 /*
@@ -348,7 +318,7 @@ func (cb *RedirectCallback) Type() CallbackType {
 }
 
 func (cb *RedirectCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
 }
 
 /*
@@ -364,7 +334,7 @@ func (cb *ScriptTextOutputCallback) Type() CallbackType {
 }
 
 func (cb *ScriptTextOutputCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
 }
 
 /*
@@ -380,7 +350,7 @@ func (cb *TextInputCallback) Type() CallbackType {
 }
 
 func (cb *TextInputCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
 }
 
 /*
@@ -396,7 +366,31 @@ func (cb *TextOutputCallback) Type() CallbackType {
 }
 
 func (cb *TextOutputCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
+}
+
+func (cb *TextOutputCallback) GetMessageNames() []string {
+	var messageNames []string
+	for _, out := range cb.Outputs {
+		messageNames = append(messageNames, out.Name)
+	}
+
+	return messageNames
+}
+
+/*
+ * TextOutputCallback Keys:
+- message:"function startProofOfWork(uuid, difficulty, onProofOfWorkSuccess) ..."
+- messageType: int
+*/
+func (cb *TextOutputCallback) GetMessage(key string) string {
+	for _, out := range cb.Outputs {
+		if key == out.Name {
+			return out.Value.(string)
+		}
+	}
+
+	return ""
 }
 
 /*
@@ -412,9 +406,5 @@ func (cb *X509CertCallback) Type() CallbackType {
 }
 
 func (cb *X509CertCallback) Prompt() string {
-	return cb.Outputs[0].Value
+	return cb.Outputs[0].Value.(string)
 }
-
-/*
- *
- */
