@@ -1,7 +1,6 @@
 package atfram
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -15,12 +14,12 @@ func TestProofOfWork(t *testing.T) {
 	t.Logf("Difficulty: %v", difficulty)
 
 	var (
-		nonce = proofOfWork(uuid, difficulty)
+		nonce = _proofOfWork(uuid, difficulty)
 		hash  = generateHash(uuid, nonce)
 	)
 
-	if !strings.HasPrefix(hash, strings.Repeat("0", difficulty)) {
-		t.Errorf("Hash %s does not satisfy difficulty %v", hash, difficulty)
+	if err := verifyProofOfWork(hash, difficulty); err != nil {
+		t.Error(err)
 	}
 
 	t.Logf("Hash: %s", hash)

@@ -11,4 +11,8 @@ var (
 	// AldiTalkClient
 	ErrAldiTalkClientInvalidStatusCode = errors.New("unexpected response status-code")
 	ErrAldiTalkClientUnknownCallback   = errors.New("please use github issues, I do not know that callback yet or havent implemented it")
+
+	// Callback Errors
+	ErrAldiTalkCallbackEmptyPoWScript = errors.New("received empty proof of work script message?")
+	ErrAldiTalkCallbackPoW            = errors.New("Hash does not satisfy difficutly")
 )

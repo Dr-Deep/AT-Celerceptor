@@ -39,106 +39,76 @@ package atfram
 	            "_id": 4
 	        },
 */
-func (c *Client) solveConfirmationCallback(cb Callback) {
+func (c *Client) solveConfirmationCallback(callbacks []Callback, _cb Callback) error {
 	//? eif so lassen
+
+	return nil
 }
 
-func (c *Client) solveHiddenValueCallback(cb Callback) {
-	hvcb, ok := cb.(*HiddenValueCallback)
-	if !ok {
-		return
-	}
+func (c *Client) solveHiddenValueCallback(callbacks []Callback, _cb Callback) error {
+	_ = _cb.(*HiddenValueCallback)
 
-	//! POW
-	if hvcb.GetValue() == "proofOfWorkNonce" {
-		hvcb.SetValue("POW HASH")
-	}
+	//?
 
-	//else irwas
+	return nil
 
 }
 
-func (c *Client) solveNameCallback(cb Callback) {
-	ncb, ok := cb.(*NameCallback)
-	if ok {
-		ncb.SetUsername(c.atconf.Username)
-	}
+func (c *Client) solveNameCallback(callbacks []Callback, _cb Callback) error {
+	_cb.(*NameCallback).SetUsername(c.atconf.Username)
+
+	return nil
 }
 
-func (c *Client) solvePasswordCallback(cb Callback) {
-	pcb, ok := cb.(*PasswordCallback)
-	if ok {
-		pcb.SetPassword(c.atconf.Password)
-	}
+func (c *Client) solvePasswordCallback(callbacks []Callback, _cb Callback) error {
+	_cb.(*PasswordCallback).SetPassword(c.atconf.Password)
+
+	return nil
 }
 
-func (c *Client) solveTextOutputCallback(cb Callback) {
-	textOutcb, ok := cb.(*TextOutputCallback)
-	if !ok {
-		return
+func (c *Client) solveTextOutputCallback(callbacks []Callback, _cb Callback) error {
+	cb := _cb.(*TextOutputCallback)
+
+	// Proof of Work
+	var proofOfWorkHash string
+	{
+		powJs := cb.GetMessage("message") // => pow script
+		if powJs == "" {
+			return ErrAldiTalkCallbackEmptyPoWScript
+		}
+
+		var (
+			proofOfWorkUUID       = aldiTalk_PoW_UUID_RE.FindString(powJs)
+			proofOfWorkDifficulty = aldiTalk_PoW_Difficulty_RE.FindString(powJs)
+		)
+
+		hash, err := GetProofOfWorkHash(proofOfWorkUUID, proofOfWorkDifficulty)
+		if err != nil {
+			return err
+		}
+
+		proofOfWorkHash = hash
 	}
 
-	//
-	powJs := textOutcb.GetMessage("message") // => pow script
-	if powJs == "" {
-		return
+	// Submit into HiddenValueCallback
+	{
+		for _, __cb := range callbacks {
+			if __cb.Type() != HIDDEN_VALUE_CALLBACK {
+				continue
+			}
+
+			hvcb := _cb.(*HiddenValueCallback)
+
+			//
+			if hvcb.GetValue() == "proofOfWorkNonce" {
+				hvcb.SetValue(
+					proofOfWorkHash,
+				)
+
+				break
+			}
+		}
 	}
 
-	var (
-		uuid       = aldiTalk_PoW_UUID_RE.FindString(powJs)
-		difficulty = aldiTalk_PoW_Difficulty_RE.FindString(powJs)
-	)
-
-	nonce := proofOfWork(uuid, difficulty)
-
-	/*
-		in HiddenValueCallback rein
-	*/
-
-	// alle hiddenvalue callbacks durchgehen bis wir eins haben mit
-	// cb.GetValue() == "proofOfWorkNonce"
-	// dann cb.SetValue() auf nonce
+	return nil
 }
-
-/*
-{
-            "type": "HiddenValueCallback",
-            "output": [
-                {
-                    "name": "value",
-                    "value": ""
-                },
-                {
-                    "name": "id",
-                    "value": "proofOfWorkNonce"
-                }
-            ],
-            "input": [
-                {
-                    "name": "IDToken1",
-                    "value": "proofOfWorkNonce"
-                }
-            ],
-            "_id": 0
-},
-{
-            "type": "HiddenValueCallback",
-            "output": [
-                {
-                    "name": "value",
-                    "value": ""
-                },
-                {
-                    "name": "id",
-                    "value": "proofOfWorkNonce"
-                }
-            ],
-            "input": [
-                {
-                    "name": "IDToken1",
-                    "value": "892"
-                }
-            ],
-            "_id": 0
-},
-*/

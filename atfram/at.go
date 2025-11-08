@@ -1,5 +1,7 @@
 package atfram
 
+import "fmt"
+
 // Server Version wahrscheinlich:
 // ForgeRock OpenAM (XUI) + OAuth2 (AM 13–14 era, evtl. AM 5.x rebrand).
 // und da ist auch eine fette proxy irwo, die blockt ab und zu pfade
@@ -59,6 +61,10 @@ func (c *Client) Login() error {
 		if err != nil {
 			return err
 		}
+
+		fmt.Printf("\n%#v\n\n", resp)
+		fmt.Println("INPUT?")
+		fmt.Scanln()
 
 		//? requirements ODER Erfolg?
 		requirements, err := c.getRequirements(resp.Callbacks)

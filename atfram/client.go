@@ -117,20 +117,20 @@ func (c *Client) solveRequirements(callbacks []Callback) error {
 		/*case CHOICE_CALLBACK:*/
 
 		case CONFIRMATION_CALLBACK:
-			c.solveConfirmationCallback(cb)
+			c.solveConfirmationCallback(callbacks, cb)
 
 		case HIDDEN_VALUE_CALLBACK:
-			c.solveHiddenValueCallback(cb)
+			c.solveHiddenValueCallback(callbacks, cb) //?
 
 		/*case HTTP_CALLBACK:*/
 
 		/*case LANGUAGE_CALLBACK:*/
 
 		case NAME_CALLBACK:
-			c.solveNameCallback(cb)
+			c.solveNameCallback(callbacks, cb)
 
 		case PASSWORD_CALLBACK:
-			c.solvePasswordCallback(cb)
+			c.solvePasswordCallback(callbacks, cb)
 
 		/*case REDIRECT_CALLBACK:*/
 
@@ -139,6 +139,7 @@ func (c *Client) solveRequirements(callbacks []Callback) error {
 		/*case TEXT_INPUT_CALLBACK:*/
 
 		case TEXT_OUTPUT_CALLBACK:
+			c.solveTextOutputCallback(callbacks, cb)
 
 		/*case X509_CERT_CALLBACK:*/
 

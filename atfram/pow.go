@@ -3,6 +3,7 @@ package atfram
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,7 +29,39 @@ var (
 	aldiTalk_PoW_UUID_RE       = regexp.MustCompile(`var\s+work\s*=\s*"(?P<work>[a-f0-9-]+)"`)
 )
 
-func proofOfWork(uuid string, difficulty int) (nonce int) {
+func GetProofOfWorkHash(uuid, _difficulty string) (string, error) {
+	diff, err := strconv.Atoi(_difficulty)
+	if err != nil {
+		return "", err
+	}
+
+	var (
+		nonce = _proofOfWork(uuid, diff)
+		hash  = generateHash(uuid, nonce)
+	)
+
+	if err := verifyProofOfWork(hash, diff); err != nil {
+		return "", err
+	}
+
+	return hash, nil
+
+}
+
+func verifyProofOfWork(hash string, difficulty int) error {
+	if !strings.HasPrefix(hash, strings.Repeat("0", difficulty)) {
+		return fmt.Errorf(
+			"%w: Hash: %s Difficulty: %v",
+			ErrAldiTalkCallbackPoW,
+			hash,
+			difficulty,
+		)
+	}
+
+	return nil
+}
+
+func _proofOfWork(uuid string, difficulty int) (nonce int) {
 	var target = strings.Repeat("0", difficulty)
 	nonce = 0
 
