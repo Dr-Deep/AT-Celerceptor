@@ -49,47 +49,32 @@ stateful client wird das hier
 */
 
 func (c *Client) Login() error {
-	// jze callbacks ausfüllen
-	// loop:ausfüllen, abschicken => bis wir Response mit TokenID haben
-
-	/*
-		first req
-		- fill callbacks
-		- send callbacks
-		- more callbacks? => fillcallbacks
-		- oder TokenID?
-	*/
-
-	// first Request
-	resp, err := c.authenticate()
-	if err != nil {
-		return err
-	}
+	var currentRequirements = []Callback{}
 
 	for {
-		// müssen wir weiter callbacks ausfüllen?
-		if resp.TokenID != "" {
-			//! logged in
+		// submit solved requirements
+		resp, err := c.submitRequirements(
+			currentRequirements,
+		)
+		if err != nil {
+			return err
 		}
 
-		// parsen
+		//? requirements ODER Erfolg?
 		requirements, err := c.getRequirements(resp.Callbacks)
 		if err != nil {
 			return err
 		}
 
-		// ausfüllen
-		c.solveRequirements(requirements)
+		//!
+		currentRequirements = requirements
 
-		c.test(requirements)
+		// solve
+		if err := c.solveRequirements(currentRequirements); err != nil {
+			return err
+		}
 
-		// ausfüllen
-		err = c.submitRequirements(requirements)
-
-		// senden
 	}
-
-	//c.submitRequirements()
 
 	return nil
 }

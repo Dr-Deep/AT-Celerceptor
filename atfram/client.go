@@ -3,6 +3,7 @@ package atfram
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/Dr-Deep/logging-go"
@@ -29,6 +30,7 @@ POST: /signin/json/realms/root/realms/alditalk/authenticate
 
 // ? 	url.URL
 type Client struct {
+	curdoc []Callback
 
 	// authID?
 	// clientID?
@@ -40,6 +42,26 @@ type Client struct {
 	atconf *AldiTalkConfig
 }
 
+func (c *Client) getRequirements(callbacks []CallbackRaw) ([]Callback, error) {
+	var requirements []Callback
+	for _, cbraw := range callbacks {
+		cb, err := matchCallback(cbraw)
+		if err != nil {
+			return nil, err
+		}
+
+		requirements = append(requirements, cb)
+	}
+
+	return requirements, nil
+}
+
+//c.logger.Debug("SEND: ", req.URL.String(), fmt.Sprintf("%#v\n\n", req))
+//c.logger.Debug("RECEIVED:", fmt.Sprintf("%#v\n", rawresp), "BODY:", readToBuf(rawresp.Body).String(), "\n\n")
+
+// geparste resp solven && senden
+// wenn kein tokenID: c.submitRequirements(newest_resp_callbacks)
+
 /*
 ? mit json body bzw filled callbacks
 * /authenticate
@@ -48,8 +70,13 @@ type Client struct {
 "stage": "",
 "header": ""
 */
-func (c *Client) authenticate() (*Response, error) {
-	var jsonBody = []byte{'{', '}'}
+func (c *Client) submitRequirements(callbacks []Callback) (*Response, error) {
+
+	// marshal
+	jsonBody, err := json.Marshal(callbacks)
+	if err != nil {
+		return nil, err
+	}
 
 	// HTTP POST
 	req, err := http.NewRequest(
@@ -69,9 +96,6 @@ func (c *Client) authenticate() (*Response, error) {
 		return nil, err
 	}
 
-	//c.logger.Debug("SEND: ", req.URL.String(), fmt.Sprintf("%#v\n\n", req))
-	//c.logger.Debug("RECEIVED:", fmt.Sprintf("%#v\n", rawresp), "BODY:", readToBuf(rawresp.Body).String(), "\n\n")
-
 	// valid Resp?
 	if rawresp.StatusCode != http.StatusOK {
 		return nil, ErrAldiTalkClientInvalidStatusCode
@@ -85,11 +109,45 @@ func (c *Client) authenticate() (*Response, error) {
 	return &resp, nil
 }
 
-/*
-* /sessions
- */
+func (c *Client) solveRequirements(callbacks []Callback) error {
+	for _, cb := range callbacks {
+		c.logger.Info("solving", cb.Type().String())
 
-/*
-	c.doc = resp
-	c.httpStatusCode = resp.StatusCode
-*/
+		switch cb.Type() {
+		/*case CHOICE_CALLBACK:*/
+
+		case CONFIRMATION_CALLBACK:
+			c.solveConfirmationCallback(cb)
+
+		case HIDDEN_VALUE_CALLBACK:
+			c.solveHiddenValueCallback(cb)
+
+		/*case HTTP_CALLBACK:*/
+
+		/*case LANGUAGE_CALLBACK:*/
+
+		case NAME_CALLBACK:
+			c.solveNameCallback(cb)
+
+		case PASSWORD_CALLBACK:
+			c.solvePasswordCallback(cb)
+
+		/*case REDIRECT_CALLBACK:*/
+
+		/*case SCRIPT_TEXT_OUTPUT_CALLBACK:*/
+
+		/*case TEXT_INPUT_CALLBACK:*/
+
+		case TEXT_OUTPUT_CALLBACK:
+
+		/*case X509_CERT_CALLBACK:*/
+
+		default:
+			err := fmt.Errorf("cant solve requirements: %w", ErrAldiTalkClientUnknownCallback)
+			c.logger.Error(err.Error(), fmt.Sprintf("%#v", cb))
+			return err
+		}
+	}
+
+	return nil
+}

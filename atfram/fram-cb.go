@@ -106,46 +106,6 @@ func (cb *ChoiceCallback) Prompt() string {
  *  Used to ask for a confirmation such as Yes, No, or Cancel and retrieve the selection.
  */
 
-/*
-{
-            "type": "ConfirmationCallback",
-            "output": [
-                {
-                    "name": "prompt",
-                    "value": ""
-                },
-                {
-                    "name": "messageType",
-                    "value": 0
-                },
-                {
-                    "name": "options",
-                    "value": [
-                        "custom.alditalk.loginuserbasic.loginWithoutPassword",
-                        "custom.alditalk.loginuserbasic.registerbtn",
-                        "custom.alditalk.loginuserbasic.loginbtn",
-                        "custom.alditalk.loginuserbasic.forgetP"
-                    ]
-                },
-                {
-                    "name": "optionType",
-                    "value": -1
-                },
-                {
-                    "name": "defaultOption",
-                    "value": 1
-                }
-            ],
-            "input": [
-                {
-                    "name": "IDToken5",
-                    "value": 0
-                }
-            ],
-            "_id": 4
-        },
-*/
-
 type ConfirmationCallback struct {
 	CallbackRaw
 }
@@ -162,55 +122,9 @@ func (cb *ConfirmationCallback) Prompt() string {
  * Used to return form values that are not visually rendered to the end user.
  */
 
-// hier POW
 type HiddenValueCallback struct {
 	CallbackRaw
 }
-
-/*
-        {
-            "type": "HiddenValueCallback",
-            "output": [
-                {
-                    "name": "value",
-                    "value": ""
-                },
-                {
-                    "name": "id",
-                    "value": "proofOfWorkNonce"
-                }
-            ],
-            "input": [
-                {
-                    "name": "IDToken1",
-                    "value": "proofOfWorkNonce"
-                }
-            ],
-            "_id": 0
-},
-{
-            "type": "HiddenValueCallback",
-            "output": [
-                {
-                    "name": "value",
-                    "value": ""
-                },
-                {
-                    "name": "id",
-                    "value": "proofOfWorkNonce"
-                }
-            ],
-            "input": [
-                {
-                    "name": "IDToken1",
-                    "value": "892"
-                }
-            ],
-            "_id": 0
-},
-*/
-
-//! welches array? was zu tuen ist, ist komplizierter wegen verschiedener HiddenValue types bzw Aufgaben
 
 func (cb *HiddenValueCallback) Type() CallbackType {
 	return HIDDEN_VALUE_CALLBACK
@@ -218,6 +132,14 @@ func (cb *HiddenValueCallback) Type() CallbackType {
 
 func (cb *HiddenValueCallback) Prompt() string {
 	return cb.Outputs[0].Value.(string)
+}
+
+func (cb *HiddenValueCallback) GetValue() string {
+	return cb.Outputs[1].Value.(string)
+}
+
+func (cb *HiddenValueCallback) SetValue(s string) {
+	cb.Inputs[0].Value = s
 }
 
 //func (cb *HiddenValueCallback) SetHiddenValue(s string)
