@@ -9,16 +9,8 @@ import (
 	"strings"
 )
 
-/*
-TextOutputCallback: ouput[0]:message:value decoden und in engine
-entweder js engine (document=json-raw *AldiTalk_Auth_Challenge)
-oder in go neu implementieren
-*/
-
-const (
-	powMaxGenerationsPerIteration = 5000
-	//count := 0; count < powMaxGenerationsPerIteration; count++
-)
+// const powMaxGenerationsPerIteration = 5000
+// count := 0; count < powMaxGenerationsPerIteration; count++
 
 var (
 	/* REGEXP

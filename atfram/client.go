@@ -13,27 +13,11 @@ import (
 //- https://login.alditalk-kundenbetreuung.de/
 //- https://alditalk-kundenbetreuung.de/
 
-// Resource-Verben: create, read, update, delete, patch, _action=script, query
-
-/*
-wir können:
-- OIDC Authorization Code (empfohlen für Web Apps) oder
-- REST Authenticate + Session Cookie (nützlich für CLI / Legacy integrations / automatisierte logins)
-
-* Flow:
-POST: /signin/json/realms/root/realms/alditalk/authenticate
-=> authID bzw JWT Token?
-=> callbacks
-=> stage?
-=> header?
-*/
-
 // ? 	url.URL
 type Client struct {
 	authID  string
 	tokenID string
 
-	// authID?
 	// clientID?
 	// customerID?
 	// etc
@@ -59,20 +43,6 @@ func (c *Client) getRequirements(callbacks []CallbackRaw) ([]Callback, error) {
 	return requirements, nil
 }
 
-//c.logger.Debug("SEND: ", req.URL.String(), fmt.Sprintf("%#v\n\n", req))
-//c.logger.Debug("RECEIVED:", fmt.Sprintf("%#v\n", rawresp), "BODY:", readToBuf(rawresp.Body).String(), "\n\n")
-
-// geparste resp solven && senden
-// wenn kein tokenID: c.submitRequirements(newest_resp_callbacks)
-
-/*
-? mit json body bzw filled callbacks
-* /authenticate
-"authId": "",
-"callbacks": [],
-"stage": "",
-"header": ""
-*/
 func (c *Client) submitRequirements(callbacks []Callback) (*Response, error) {
 	var jsonBody = []byte{'{', '}'}
 

@@ -69,10 +69,11 @@ type Response struct {
 	Stage     string        `json:"stage"`
 	Callbacks []CallbackRaw `json:"callbacks"`
 
-	Code       int    `json:"code"`
-	Reason     string `json:"reason"`
-	Message    string `json:"message"`
-	TokenID    string `json:"tokenId"`
+	Code    int    `json:"code"`
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
+	TokenID string `json:"tokenId"`
+
 	SuccessURL string `json:"successUrl"`
 	FailureURL string `json:"failureUrl"`
 }
@@ -84,13 +85,7 @@ type Response struct {
 	"reason":"Unauthorized",
 	"message":"Invalid Password!!"
 }
-
 * Success:
-{
-	"message": "Authentication Successful",
-	"successUrl": "/openam/console"
-}
-OR:
 {
 	"tokenId": "AQIC5wM2...U3MTE4NA..*",
 	"successUrl": "/openam/console"

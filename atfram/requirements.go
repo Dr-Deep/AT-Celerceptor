@@ -36,7 +36,6 @@ func (c *Client) solvePasswordCallback(callbacks []Callback, _cb Callback) error
 }
 
 func (c *Client) solveTextOutputCallback(callbacks []Callback, _cb Callback) error {
-
 	cb := _cb.(*TextOutputCallback)
 
 	// Proof of Work
