@@ -1,54 +1,23 @@
 package atfram
 
-/*
-	{
-	            "type": "ConfirmationCallback",
-	            "output": [
-	                {
-	                    "name": "prompt",
-	                    "value": ""
-	                },
-	                {
-	                    "name": "messageType",
-	                    "value": 0
-	                },
-	                {
-	                    "name": "options",
-	                    "value": [
-	                        "custom.alditalk.loginuserbasic.loginWithoutPassword",
-	                        "custom.alditalk.loginuserbasic.registerbtn",
-	                        "custom.alditalk.loginuserbasic.loginbtn",
-	                        "custom.alditalk.loginuserbasic.forgetP"
-	                    ]
-	                },
-	                {
-	                    "name": "optionType",
-	                    "value": -1
-	                },
-	                {
-	                    "name": "defaultOption",
-	                    "value": 1
-	                }
-	            ],
-	            "input": [
-	                {
-	                    "name": "IDToken5",
-	                    "value": 0
-	                }
-	            ],
-	            "_id": 4
-	        },
-*/
+import "fmt"
+
+// idk was das tut
 func (c *Client) solveConfirmationCallback(callbacks []Callback, _cb Callback) error {
-	//? eif so lassen
+	cb := _cb.(*ConfirmationCallback)
+	cb.Inputs[0].Value = "2"
 
 	return nil
 }
 
+// idk was das tut aber so passierts
 func (c *Client) solveHiddenValueCallback(callbacks []Callback, _cb Callback) error {
-	_ = _cb.(*HiddenValueCallback)
+	cb := _cb.(*HiddenValueCallback)
 
-	//?
+	// für alle außer pow
+	if cb.GetValue() != "proofOfWorkNonce" {
+		cb.Inputs[0].Value = cb.Outputs[1].Value
+	}
 
 	return nil
 
@@ -67,27 +36,41 @@ func (c *Client) solvePasswordCallback(callbacks []Callback, _cb Callback) error
 }
 
 func (c *Client) solveTextOutputCallback(callbacks []Callback, _cb Callback) error {
+
 	cb := _cb.(*TextOutputCallback)
 
 	// Proof of Work
-	var proofOfWorkHash string
+	var (
+		proofOfWorkNonce      string
+		proofOfWorkUUID       string
+		proofOfWorkDifficulty string
+	)
 	{
 		powJs := cb.GetMessage("message") // => pow script
 		if powJs == "" {
 			return ErrAldiTalkCallbackEmptyPoWScript
 		}
 
+		// Find Vars
 		var (
-			proofOfWorkUUID       = aldiTalk_PoW_UUID_RE.FindString(powJs)
-			proofOfWorkDifficulty = aldiTalk_PoW_Difficulty_RE.FindString(powJs)
+			matchUUID = aldiTalk_PoW_UUID_RE.FindStringSubmatch(powJs)
+			matchDiff = aldiTalk_PoW_Difficulty_RE.FindStringSubmatch(powJs)
 		)
+		if matchUUID == nil || matchDiff == nil {
+			return ErrAldiTalkCallbackPoWNoMatch
+		}
 
-		hash, err := GetProofOfWorkHash(proofOfWorkUUID, proofOfWorkDifficulty)
+		//
+		proofOfWorkUUID = matchUUID[1]
+		proofOfWorkDifficulty = matchDiff[1]
+		//proofOfWorkDifficulty = cb.GetMessage("messageType")
+
+		nonce, err := GetProofOfWorkNonce(proofOfWorkUUID, proofOfWorkDifficulty)
 		if err != nil {
 			return err
 		}
 
-		proofOfWorkHash = hash
+		proofOfWorkNonce = nonce
 	}
 
 	// Submit into HiddenValueCallback
@@ -97,13 +80,20 @@ func (c *Client) solveTextOutputCallback(callbacks []Callback, _cb Callback) err
 				continue
 			}
 
-			hvcb := _cb.(*HiddenValueCallback)
-
+			hvcb := __cb.(*HiddenValueCallback)
 			//
 			if hvcb.GetValue() == "proofOfWorkNonce" {
 				hvcb.SetValue(
-					proofOfWorkHash,
+					proofOfWorkNonce,
 				)
+
+				c.logger.Info(
+					"Proof of Work gelöst und gesetzt",
+					fmt.Sprintf("diff: %s", proofOfWorkDifficulty),
+					proofOfWorkNonce,
+				)
+
+				c.logger.Debug(hvcb.Type().String(), fmt.Sprintf("%#v", hvcb))
 
 				break
 			}

@@ -30,7 +30,8 @@ POST: /signin/json/realms/root/realms/alditalk/authenticate
 
 // ? 	url.URL
 type Client struct {
-	curdoc []Callback
+	authID  string
+	tokenID string
 
 	// authID?
 	// clientID?
@@ -41,6 +42,8 @@ type Client struct {
 	logger *logging.Logger
 	atconf *AldiTalkConfig
 }
+
+// SuccessURL:"https://www.alditalk-kundenbetreuung.de/",
 
 func (c *Client) getRequirements(callbacks []CallbackRaw) ([]Callback, error) {
 	var requirements []Callback
@@ -71,11 +74,19 @@ func (c *Client) getRequirements(callbacks []CallbackRaw) ([]Callback, error) {
 "header": ""
 */
 func (c *Client) submitRequirements(callbacks []Callback) (*Response, error) {
+	var jsonBody = []byte{'{', '}'}
 
-	// marshal
-	jsonBody, err := json.Marshal(callbacks)
-	if err != nil {
-		return nil, err
+	if len(callbacks) > 0 {
+		// marshal
+		_jsonBody, err := json.Marshal(
+			&Request{
+				AuthID:    c.authID,
+				Callbacks: callbacks,
+			})
+		if err != nil {
+			return nil, err
+		}
+		jsonBody = _jsonBody
 	}
 
 	// HTTP POST
@@ -98,7 +109,7 @@ func (c *Client) submitRequirements(callbacks []Callback) (*Response, error) {
 
 	// valid Resp?
 	if rawresp.StatusCode != http.StatusOK {
-		return nil, ErrAldiTalkClientInvalidStatusCode
+		return nil, fmt.Errorf("%w: %v", ErrAldiTalkClientInvalidStatusCode, rawresp.StatusCode)
 	}
 
 	var resp Response
@@ -110,27 +121,27 @@ func (c *Client) submitRequirements(callbacks []Callback) (*Response, error) {
 }
 
 func (c *Client) solveRequirements(callbacks []Callback) error {
-	for _, cb := range callbacks {
-		c.logger.Info("solving", cb.Type().String())
+	for idx, cb := range callbacks {
 
+		var err error
 		switch cb.Type() {
 		/*case CHOICE_CALLBACK:*/
 
 		case CONFIRMATION_CALLBACK:
-			c.solveConfirmationCallback(callbacks, cb)
+			err = c.solveConfirmationCallback(callbacks, cb)
 
 		case HIDDEN_VALUE_CALLBACK:
-			c.solveHiddenValueCallback(callbacks, cb) //?
+			err = c.solveHiddenValueCallback(callbacks, cb) //?
 
 		/*case HTTP_CALLBACK:*/
 
 		/*case LANGUAGE_CALLBACK:*/
 
 		case NAME_CALLBACK:
-			c.solveNameCallback(callbacks, cb)
+			err = c.solveNameCallback(callbacks, cb)
 
 		case PASSWORD_CALLBACK:
-			c.solvePasswordCallback(callbacks, cb)
+			err = c.solvePasswordCallback(callbacks, cb)
 
 		/*case REDIRECT_CALLBACK:*/
 
@@ -139,7 +150,7 @@ func (c *Client) solveRequirements(callbacks []Callback) error {
 		/*case TEXT_INPUT_CALLBACK:*/
 
 		case TEXT_OUTPUT_CALLBACK:
-			c.solveTextOutputCallback(callbacks, cb)
+			err = c.solveTextOutputCallback(callbacks, cb)
 
 		/*case X509_CERT_CALLBACK:*/
 
@@ -148,6 +159,12 @@ func (c *Client) solveRequirements(callbacks []Callback) error {
 			c.logger.Error(err.Error(), fmt.Sprintf("%#v", cb))
 			return err
 		}
+
+		if err != nil {
+			return err
+		}
+
+		c.logger.Info("solved", fmt.Sprintf("(%v/%v)", idx+1, len(callbacks)), cb.Type().String())
 	}
 
 	return nil

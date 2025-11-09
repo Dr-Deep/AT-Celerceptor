@@ -62,24 +62,27 @@ func (c *Client) Login() error {
 			return err
 		}
 
-		fmt.Printf("\n%#v\n\n", resp)
-		fmt.Println("INPUT?")
-		fmt.Scanln()
+		// we made it
+		if resp.TokenID != "" {
+			c.tokenID = resp.TokenID
+			break
+		}
+
+		c.authID = resp.AuthID
 
 		//? requirements ODER Erfolg?
 		requirements, err := c.getRequirements(resp.Callbacks)
 		if err != nil {
+			c.logger.Debug("RECEIVED", fmt.Sprintf("%#v", resp))
 			return err
 		}
-
-		//!
-		currentRequirements = requirements
 
 		// solve
-		if err := c.solveRequirements(currentRequirements); err != nil {
+		if err := c.solveRequirements(requirements); err != nil {
 			return err
 		}
 
+		currentRequirements = requirements
 	}
 
 	return nil

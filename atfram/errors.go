@@ -14,5 +14,6 @@ var (
 
 	// Callback Errors
 	ErrAldiTalkCallbackEmptyPoWScript = errors.New("received empty proof of work script message?")
-	ErrAldiTalkCallbackPoW            = errors.New("Hash does not satisfy difficutly")
+	ErrAldiTalkCallbackPoWNoMatch     = errors.New("cannot find proof of work vars")
+	ErrAldiTalkCallbackPoW            = errors.New("hash does not satisfy difficutly")
 )

@@ -58,6 +58,7 @@ func (c *Celerceptor) Launch() error {
 	)
 
 	c.tryLogin()
+	c.tryUpdateDataVol()
 
 	c.Unlock()
 	return c.run()
@@ -152,13 +153,3 @@ func (c *Celerceptor) tryUpdateDataVol() {
 func (c *Celerceptor) tryGetDataVol() {
 	c.logger.Info("trying to get datavol")
 }
-
-/*
-	// Session
-	s, err := alditalk.NewAldiTalkSession(c.logger, c.cfg.Tel, c.cfg.Password)
-	if err != nil {
-		return err
-	}
-
-	c.session = s
-*/

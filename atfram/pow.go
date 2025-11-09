@@ -29,7 +29,7 @@ var (
 	aldiTalk_PoW_UUID_RE       = regexp.MustCompile(`var\s+work\s*=\s*"(?P<work>[a-f0-9-]+)"`)
 )
 
-func GetProofOfWorkHash(uuid, _difficulty string) (string, error) {
+func GetProofOfWorkNonce(uuid, _difficulty string) (string, error) {
 	diff, err := strconv.Atoi(_difficulty)
 	if err != nil {
 		return "", err
@@ -44,7 +44,7 @@ func GetProofOfWorkHash(uuid, _difficulty string) (string, error) {
 		return "", err
 	}
 
-	return hash, nil
+	return strconv.Itoa(nonce), nil
 
 }
 

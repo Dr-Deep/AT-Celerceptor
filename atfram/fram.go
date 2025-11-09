@@ -56,6 +56,13 @@ func (cr CallbackRaw) Marshal() {
 	//json.Marshal(cr)
 }
 
+type Request struct {
+	AuthID    string     `json:"authId"` // JSON Web Token (JWT)
+	Callbacks []Callback `json:"callbacks"`
+	//? stage etc
+	//? header
+}
+
 type Response struct {
 	AuthID    string        `json:"authId"` // JSON Web Token (JWT)
 	Template  string        `json:"template"`
