@@ -11,7 +11,7 @@ import (
 
 var (
 	defaultHttpHeaders = map[string]string{
-		"Accept-API-Version": "resource=2.0, protocol=1.0",                                                       // maybe that does something?
+		"Accept-API-Version": "protocol=1.0,resource=2.0",                                                        // maybe that does something?
 		"User-Agent":         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0", // js to be safe
 		"Content-Type":       "application/json",
 	}

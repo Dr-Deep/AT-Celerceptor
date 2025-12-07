@@ -9,8 +9,10 @@ var (
 	ErrAldiTalkConfigMissingPassword = errors.New("we need a password")
 
 	// AldiTalkClient
-	ErrAldiTalkClientInvalidStatusCode = errors.New("unexpected response status-code")
-	ErrAldiTalkClientUnknownCallback   = errors.New("please use github issues, I do not know that callback yet or havent implemented it")
+	ErrAldiTalkClientInvalidStatusCode      = errors.New("unexpected response status-code")
+	ErrAldiTalkClientUnauthorizedStatusCode = errors.New("username/password incorrect")
+	ErrAldiTalkClientUnknownCallback        = errors.New("please use github issues, I do not know that callback yet or havent implemented it")
+	ErrAldiTalkCustomErr                    = errors.New("custom error from server")
 
 	// Callback Errors
 	ErrAldiTalkCallbackEmptyPoWScript = errors.New("received empty proof of work script message?")

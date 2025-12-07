@@ -1,102 +1,130 @@
 package atfram
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
 
-// idk was das tut
-func (c *Client) solveConfirmationCallback(callbacks []Callback, _cb Callback) error {
-	cb := _cb.(*ConfirmationCallback)
-	cb.Inputs[0].Value = "2"
+func (c *Client) getRequirements(callbacks []CallbackRaw) ([]Callback, error) {
+	var requirements []Callback
+	for _, cbraw := range callbacks {
+		cb, err := matchCallback(cbraw)
+		if err != nil {
+			return nil, err
+		}
 
-	return nil
-}
-
-// idk was das tut aber so passierts
-func (c *Client) solveHiddenValueCallback(callbacks []Callback, _cb Callback) error {
-	cb := _cb.(*HiddenValueCallback)
-
-	// für alle außer pow
-	if cb.GetValue() != "proofOfWorkNonce" {
-		cb.Inputs[0].Value = cb.Outputs[1].Value
+		requirements = append(requirements, cb)
 	}
 
-	return nil
-
+	return requirements, nil
 }
 
-func (c *Client) solveNameCallback(callbacks []Callback, _cb Callback) error {
-	_cb.(*NameCallback).SetUsername(c.atconf.Username)
+func (c *Client) submitRequirements(callbacks []Callback) (*FramResponse, error) {
+	var jsonBody []byte
 
-	return nil
-}
-
-func (c *Client) solvePasswordCallback(callbacks []Callback, _cb Callback) error {
-	_cb.(*PasswordCallback).SetPassword(c.atconf.Password)
-
-	return nil
-}
-
-func (c *Client) solveTextOutputCallback(callbacks []Callback, _cb Callback) error {
-	cb := _cb.(*TextOutputCallback)
-
-	// Proof of Work
-	var (
-		proofOfWorkNonce      string
-		proofOfWorkUUID       string
-		proofOfWorkDifficulty string
-	)
-	{
-		powJs := cb.GetMessage("message") // => pow script
-		if powJs == "" {
-			return ErrAldiTalkCallbackEmptyPoWScript
-		}
-
-		// Find Vars
-		var (
-			matchUUID = aldiTalk_PoW_UUID_RE.FindStringSubmatch(powJs)
-			matchDiff = aldiTalk_PoW_Difficulty_RE.FindStringSubmatch(powJs)
-		)
-		if matchUUID == nil || matchDiff == nil {
-			return ErrAldiTalkCallbackPoWNoMatch
-		}
-
-		//
-		proofOfWorkUUID = matchUUID[1]
-		proofOfWorkDifficulty = matchDiff[1]
-		//proofOfWorkDifficulty = cb.GetMessage("messageType")
-
-		nonce, err := GetProofOfWorkNonce(proofOfWorkUUID, proofOfWorkDifficulty)
+	if len(callbacks) > 0 {
+		// marshal
+		_jsonBody, err := json.Marshal(
+			&FramRequest{
+				AuthID:    c.authID,
+				Callbacks: callbacks,
+			})
 		if err != nil {
+			return nil, err
+		}
+		jsonBody = _jsonBody
+	} else {
+		jsonBody = []byte{'{', '}'}
+	}
+
+	// HTTP POST
+	rawresp, err := c.DoHttpRequest(
+		http.MethodPost,
+		ALDITALK_AUTHENTICATE_EP,
+		jsonBody,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// is resp valid
+	switch rawresp.StatusCode {
+	case http.StatusUnauthorized:
+		return nil, fmt.Errorf("%w: %v", ErrAldiTalkClientInvalidStatusCode, rawresp.StatusCode)
+
+	case http.StatusOK:
+		break
+
+	default:
+		return nil, fmt.Errorf("%w: %v", ErrAldiTalkClientInvalidStatusCode, rawresp.StatusCode)
+	}
+
+	// decode resp
+	var resp FramResponse
+	if err := json.NewDecoder(rawresp.Body).Decode(&resp); err != nil {
+		c.logger.Debug(_readToBuf(rawresp.Body).String())
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
+func (c *Client) solveRequirements(callbacks []Callback) error {
+	var matchCallback = func(cb Callback) (err error) {
+
+		switch cb.Type() {
+		/*case CHOICE_CALLBACK:*/
+
+		case CONFIRMATION_CALLBACK:
+			err = c.solveConfirmationCallback(callbacks, cb)
+
+		case HIDDEN_VALUE_CALLBACK:
+			err = c.solveHiddenValueCallback(callbacks, cb)
+
+		/*case HTTP_CALLBACK:*/
+
+		/*case LANGUAGE_CALLBACK:*/
+
+		case NAME_CALLBACK:
+			err = c.solveNameCallback(callbacks, cb)
+
+		case PASSWORD_CALLBACK:
+			err = c.solvePasswordCallback(callbacks, cb)
+
+		/*case REDIRECT_CALLBACK:*/
+
+		/*case SCRIPT_TEXT_OUTPUT_CALLBACK:*/
+
+		/*case TEXT_INPUT_CALLBACK:*/
+
+		case TEXT_OUTPUT_CALLBACK:
+			err = c.solveTextOutputCallback(callbacks, cb)
+
+		/*case X509_CERT_CALLBACK:*/
+
+		default:
+			return fmt.Errorf(
+				"cant solve requirements: %w",
+				ErrAldiTalkClientUnknownCallback,
+			)
+		}
+
+		return err
+	}
+
+	// * solve
+
+	for idx, cb := range callbacks {
+		if err := matchCallback(cb); err != nil {
 			return err
 		}
 
-		proofOfWorkNonce = nonce
-	}
-
-	// Submit into HiddenValueCallback
-	{
-		for _, __cb := range callbacks {
-			if __cb.Type() != HIDDEN_VALUE_CALLBACK {
-				continue
-			}
-
-			hvcb := __cb.(*HiddenValueCallback)
-			//
-			if hvcb.GetValue() == "proofOfWorkNonce" {
-				hvcb.SetValue(
-					proofOfWorkNonce,
-				)
-
-				c.logger.Info(
-					"Proof of Work gelöst und gesetzt",
-					fmt.Sprintf("diff: %s", proofOfWorkDifficulty),
-					proofOfWorkNonce,
-				)
-
-				c.logger.Debug(hvcb.Type().String(), fmt.Sprintf("%#v", hvcb))
-
-				break
-			}
-		}
+		c.logger.Info(
+			fmt.Sprintf("(%v/%v)", idx+1, len(callbacks)),
+			"solved requirement",
+			cb.Type().String(),
+		)
 	}
 
 	return nil

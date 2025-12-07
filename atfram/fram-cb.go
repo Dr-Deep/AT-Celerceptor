@@ -140,7 +140,6 @@ func (cb *HiddenValueCallback) GetValue() string {
 
 func (cb *HiddenValueCallback) SetValue(s string) {
 	cb.Inputs[0].Value = s
-	fmt.Printf("\n\n HVCB : %#v\n\n", cb)
 }
 
 //func (cb *HiddenValueCallback) SetHiddenValue(s string)

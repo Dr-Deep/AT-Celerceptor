@@ -52,30 +52,9 @@ type CallbackRaw struct {
 	Outputs      []CallbackOutput `json:"output"`
 }
 
-func (cr CallbackRaw) Marshal() {
-	//json.Marshal(cr)
-}
-
-type Request struct {
+type FramRequest struct {
 	AuthID    string     `json:"authId"` // JSON Web Token (JWT)
 	Callbacks []Callback `json:"callbacks"`
-	//? stage etc
-	//? header
-}
-
-type Response struct {
-	AuthID    string        `json:"authId"` // JSON Web Token (JWT)
-	Template  string        `json:"template"`
-	Stage     string        `json:"stage"`
-	Callbacks []CallbackRaw `json:"callbacks"`
-
-	Code    int    `json:"code"`
-	Reason  string `json:"reason"`
-	Message string `json:"message"`
-	TokenID string `json:"tokenId"`
-
-	SuccessURL string `json:"successUrl"`
-	FailureURL string `json:"failureUrl"`
 }
 
 /*
@@ -91,3 +70,65 @@ type Response struct {
 	"successUrl": "/openam/console"
 }
 */
+type FramResponse struct {
+	AuthID    string        `json:"authId"` // JSON Web Token (JWT)
+	Template  string        `json:"template"`
+	Stage     string        `json:"stage"`
+	Callbacks []CallbackRaw `json:"callbacks"`
+
+	Code    int    `json:"code"`
+	Reason  string `json:"reason"`
+	Message string `json:"message"`
+	TokenID string `json:"tokenId"`
+
+	SuccessURL string `json:"successUrl"`
+	FailureURL string `json:"failureUrl"`
+}
+
+type FramSessionInfo struct {
+	UserID                   string `json:"username"`
+	UniversalID              string `json:"universalId"`
+	LatestAccessTime         string `json:"latestAccessTime"`
+	MaxIdleExpirationTime    string `json:"maxIdleExpirationTime"`
+	MaxSessionExpirationTime string `json:"maxSessionExpirationTime"`
+
+	Properties struct {
+		AMCtxID   string `json:"AMCtxId"`
+		AuthLevel string `json:"auth_lvl"`
+		Acr       string `json:"acr"`
+	}
+}
+
+type FramUserInfo struct {
+	UserID          string   `json:"username"`
+	UID             []string `json:"uid"`
+	TelephoneNumber []string `json:"telephoneNumber"`
+	GivenName       []string `json:"givenName"`
+	Surname         []string `json:"sn"`
+	Roles           []string `json:"roles"`
+}
+
+/*
+{
+	"id":"A-IIIIIII",
+	"realm":"/alditalk",
+	"dn":"id=A-IIIIIII,ou=user,o=alditalk,ou=services,ou=am-config",
+	"successURL":"https://www.alditalk-kundenbetreuung.de/",
+	"fullLoginURL":"/signin/UI/Login?realm=%2Falditalk"
+}
+*/
+type FramUIDFromSession struct {
+	UserID       string `json:"id"`
+	DN           string `json:"dn"`
+	SuccessURL   string `json:"successURL"`
+	FullLoginURL string `json:"fullLoginURL"`
+}
+
+type UserInfo struct {
+	SessionID  string // session_id für scs
+	UserID     string // user_id=A-xxxxx
+	CustomerID string // tef_customer_id=C-xxxxx
+	IsLoggedIn bool   // is_logged=true
+}
+
+// ciamsessionid
